@@ -397,5 +397,5 @@ fn test_instance_metadata_creds_deserialization() {
         }
     "#,
     )
-    .unwrap();
+        .unwrap();
 }
