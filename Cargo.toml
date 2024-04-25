@@ -1,6 +1,2 @@
 [workspace]
-members = [
-    "s3",
-    "aws-region",
-    "aws-creds"
-]
+members = ["rust-s3", "aws-region", "aws-creds"]
