@@ -169,6 +169,86 @@ mod tests {
     }
 
     #[test]
+    fn sse_header_sent_only_on_object_storing_commands() {
+        let region = "custom-region".parse().unwrap();
+        let mut bucket = Bucket::new("my-first-bucket", region, fake_credentials()).unwrap();
+        bucket.set_server_side_encryption(Some("AES256".to_string()));
+        let sse = http::header::HeaderName::from_static("x-amz-server-side-encryption");
+
+        let put = Reqwest::new(
+            &bucket,
+            "/test.file",
+            Command::PutObject {
+                content: &[],
+                content_type: "application/octet-stream",
+                multipart: None,
+            },
+        );
+        assert_eq!(
+            put.headers()
+                .unwrap()
+                .get(&sse)
+                .map(|v| v.to_str().unwrap()),
+            Some("AES256")
+        );
+
+        let init = Reqwest::new(
+            &bucket,
+            "/test.file",
+            Command::InitiateMultipartUpload {
+                content_type: "application/octet-stream",
+            },
+        );
+        assert!(init.headers().unwrap().get(&sse).is_some());
+
+        // S3 rejects the header on every other operation.
+        let list = Reqwest::new(
+            &bucket,
+            "/",
+            Command::ListObjectsV2 {
+                prefix: "".to_string(),
+                delimiter: None,
+                continuation_token: None,
+                start_after: None,
+                max_keys: None,
+            },
+        );
+        assert!(list.headers().unwrap().get(&sse).is_none());
+
+        let get = Reqwest::new(&bucket, "/test.file", Command::GetObject);
+        assert!(get.headers().unwrap().get(&sse).is_none());
+
+        let part = Reqwest::new(
+            &bucket,
+            "/test.file",
+            Command::UploadPart {
+                part_number: 1,
+                content: &[],
+                upload_id: "id",
+            },
+        );
+        assert!(part.headers().unwrap().get(&sse).is_none());
+
+        // And a bucket without SSE configured never sends it.
+        let plain_bucket = Bucket::new(
+            "my-first-bucket",
+            "custom-region".parse().unwrap(),
+            fake_credentials(),
+        )
+        .unwrap();
+        let plain_put = Reqwest::new(
+            &plain_bucket,
+            "/test.file",
+            Command::PutObject {
+                content: &[],
+                content_type: "application/octet-stream",
+                multipart: None,
+            },
+        );
+        assert!(plain_put.headers().unwrap().get(&sse).is_none());
+    }
+
+    #[test]
     fn url_uses_https_by_default() {
         let region = "custom-region".parse().unwrap();
         let bucket = Bucket::new("my-first-bucket", region, fake_credentials()).unwrap();
