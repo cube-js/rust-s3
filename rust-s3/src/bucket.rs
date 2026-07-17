@@ -90,6 +90,11 @@ pub struct Bucket {
     pub credentials: Credentials,
     pub extra_headers: HeaderMap,
     pub extra_query: Query,
+    /// When set, requests that store objects (PutObject, multipart-upload
+    /// initiation) carry `x-amz-server-side-encryption` with this value.
+    /// Applied per-operation because S3 rejects the header on read/list
+    /// operations.
+    pub server_side_encryption: Option<String>,
     pub request_timeout: Option<Duration>,
     path_style: bool,
     listobjects_v2: bool,
@@ -384,6 +389,7 @@ impl Bucket {
             credentials,
             extra_headers: HeaderMap::new(),
             extra_query: HashMap::new(),
+            server_side_encryption: None,
             request_timeout: DEFAULT_REQUEST_TIMEOUT,
             path_style: false,
             listobjects_v2: true,
@@ -409,6 +415,7 @@ impl Bucket {
             credentials: Credentials::anonymous()?,
             extra_headers: HeaderMap::new(),
             extra_query: HashMap::new(),
+            server_side_encryption: None,
             request_timeout: DEFAULT_REQUEST_TIMEOUT,
             path_style: false,
             listobjects_v2: true,
@@ -422,6 +429,7 @@ impl Bucket {
             credentials: self.credentials.clone(),
             extra_headers: self.extra_headers.clone(),
             extra_query: self.extra_query.clone(),
+            server_side_encryption: self.server_side_encryption.clone(),
             request_timeout: self.request_timeout,
             path_style: true,
             listobjects_v2: self.listobjects_v2,
@@ -435,6 +443,7 @@ impl Bucket {
             credentials: self.credentials.clone(),
             extra_headers,
             extra_query: self.extra_query.clone(),
+            server_side_encryption: self.server_side_encryption.clone(),
             request_timeout: self.request_timeout,
             path_style: self.path_style,
             listobjects_v2: self.listobjects_v2,
@@ -448,6 +457,7 @@ impl Bucket {
             credentials: self.credentials.clone(),
             extra_headers: self.extra_headers.clone(),
             extra_query,
+            server_side_encryption: self.server_side_encryption.clone(),
             request_timeout: self.request_timeout,
             path_style: self.path_style,
             listobjects_v2: self.listobjects_v2,
@@ -461,6 +471,7 @@ impl Bucket {
             credentials: self.credentials.clone(),
             extra_headers: self.extra_headers.clone(),
             extra_query: self.extra_query.clone(),
+            server_side_encryption: self.server_side_encryption.clone(),
             request_timeout: Some(request_timeout),
             path_style: self.path_style,
             listobjects_v2: self.listobjects_v2,
@@ -474,6 +485,7 @@ impl Bucket {
             credentials: self.credentials.clone(),
             extra_headers: self.extra_headers.clone(),
             extra_query: self.extra_query.clone(),
+            server_side_encryption: self.server_side_encryption.clone(),
             request_timeout: self.request_timeout,
             path_style: self.path_style,
             listobjects_v2: false,
@@ -508,6 +520,7 @@ impl Bucket {
             credentials,
             extra_headers: HeaderMap::new(),
             extra_query: HashMap::new(),
+            server_side_encryption: None,
             request_timeout: DEFAULT_REQUEST_TIMEOUT,
             path_style: true,
             listobjects_v2: true,
@@ -537,6 +550,7 @@ impl Bucket {
             credentials: Credentials::anonymous()?,
             extra_headers: HeaderMap::new(),
             extra_query: HashMap::new(),
+            server_side_encryption: None,
             request_timeout: DEFAULT_REQUEST_TIMEOUT,
             path_style: true,
             listobjects_v2: true,
@@ -1900,6 +1914,19 @@ impl Bucket {
     pub fn add_header(&mut self, key: &str, value: &str) {
         self.extra_headers
             .insert(HeaderName::from_str(key).unwrap(), value.parse().unwrap());
+    }
+
+    /// Set the `x-amz-server-side-encryption` value sent on requests that
+    /// store objects (PutObject and multipart-upload initiation). S3 rejects
+    /// this header on read/list operations, which is why it is applied
+    /// per-operation instead of through `extra_headers`.
+    pub fn set_server_side_encryption(&mut self, sse: Option<String>) {
+        self.server_side_encryption = sse;
+    }
+
+    /// Get the configured server-side-encryption header value, if any.
+    pub fn server_side_encryption(&self) -> Option<&str> {
+        self.server_side_encryption.as_deref()
     }
 
     /// Get a reference to the extra headers to be passed to the S3 API.
