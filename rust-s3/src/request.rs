@@ -229,6 +229,19 @@ mod tests {
         );
         assert!(part.headers().unwrap().get(&sse).is_none());
 
+        // Streaming part uploads are issued as PutObject { multipart: Some }
+        // (bucket.rs put_object_stream) — S3 rejects the SSE header on parts.
+        let stream_part = Reqwest::new(
+            &bucket,
+            "/test.file",
+            Command::PutObject {
+                content: &[],
+                content_type: "application/octet-stream",
+                multipart: Some(crate::command::Multipart::new(1, "id")),
+            },
+        );
+        assert!(stream_part.headers().unwrap().get(&sse).is_none());
+
         // And a bucket without SSE configured never sends it.
         let plain_bucket = Bucket::new(
             "my-first-bucket",

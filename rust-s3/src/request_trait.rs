@@ -410,13 +410,18 @@ pub trait Request {
         }
 
         // Server-side encryption is only valid on requests that store objects.
-        // S3 rejects the header on reads/lists/UploadPart (the parts inherit
-        // the encryption declared at multipart initiation), so it must not be
-        // sent bucket-wide via extra_headers.
+        // S3 rejects the header on reads/lists and on part uploads — parts
+        // inherit the encryption declared at multipart initiation, and are
+        // issued here as `PutObject { multipart: Some(..) }` — so it must be
+        // limited to plain PutObject and InitiateMultipartUpload (and must not
+        // be sent bucket-wide via extra_headers).
         if let Some(sse) = self.bucket().server_side_encryption() {
             if matches!(
                 self.command(),
-                Command::PutObject { .. } | Command::InitiateMultipartUpload { .. }
+                Command::PutObject {
+                    multipart: None,
+                    ..
+                } | Command::InitiateMultipartUpload { .. }
             ) {
                 headers.insert(
                     HeaderName::from_static("x-amz-server-side-encryption"),
