@@ -437,13 +437,6 @@ pub trait Request {
                 HeaderName::from_static("content-md5"),
                 hash.parse().unwrap(),
             );
-        } else if let Command::PutObject { content, .. } = self.command() {
-            let digest = md5::compute(content);
-            let hash = base64::encode(digest.as_ref());
-            headers.insert(
-                HeaderName::from_static("content-md5"),
-                hash.parse().unwrap(),
-            );
         } else if let Command::UploadPart { content, .. } = self.command() {
             let digest = md5::compute(content);
             let hash = base64::encode(digest.as_ref());
