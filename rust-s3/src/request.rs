@@ -169,6 +169,34 @@ mod tests {
     }
 
     #[test]
+    fn put_object_relies_on_signed_payload_hash_not_content_md5() {
+        let region = "custom-region".parse().unwrap();
+        let bucket = Bucket::new("my-first-bucket", region, fake_credentials()).unwrap();
+        let content_md5 = http::header::HeaderName::from_static("content-md5");
+        let content_sha256 = http::header::HeaderName::from_static("x-amz-content-sha256");
+
+        // Single PUT and streaming part (bucket.rs put_object_stream) both use PutObject.
+        for multipart in [None, Some(crate::command::Multipart::new(1, "id"))] {
+            let put = Reqwest::new(
+                &bucket,
+                "/test.file",
+                Command::PutObject {
+                    content: b"hello",
+                    content_type: "application/octet-stream",
+                    multipart,
+                },
+            );
+            let headers = put.headers().unwrap();
+            assert!(headers.get(&content_md5).is_none());
+            // SHA-256 of "hello": SigV4 signs it and S3 checks the body against it.
+            assert_eq!(
+                headers.get(&content_sha256).map(|v| v.to_str().unwrap()),
+                Some("2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824")
+            );
+        }
+    }
+
+    #[test]
     fn sse_header_sent_only_on_object_storing_commands() {
         let region = "custom-region".parse().unwrap();
         let mut bucket = Bucket::new("my-first-bucket", region, fake_credentials()).unwrap();
