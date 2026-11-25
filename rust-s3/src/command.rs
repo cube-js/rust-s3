@@ -2,7 +2,10 @@ use std::collections::HashMap;
 
 use crate::serde_types::CompleteMultipartUploadData;
 
+#[cfg(feature = "openssl")]
+use crate::signing::Sha256;
 use crate::EMPTY_PAYLOAD_SHA;
+#[cfg(not(feature = "openssl"))]
 use sha2::{Digest, Sha256};
 
 pub enum HttpMethod {

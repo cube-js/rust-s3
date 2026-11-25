@@ -5,14 +5,18 @@
 use std::collections::HashMap;
 use std::str;
 
+#[cfg(not(feature = "openssl"))]
 use hmac::{Hmac, Mac};
 use http::HeaderMap;
 use percent_encoding::{utf8_percent_encode, AsciiSet, CONTROLS};
+#[cfg(not(feature = "openssl"))]
 use sha2::{Digest, Sha256};
 use time::{macros::format_description, OffsetDateTime};
 use url::Url;
 
 use crate::error::S3Error;
+#[cfg(feature = "openssl")]
+pub use crate::openssl_crypto::{HmacSha256, Sha256};
 use crate::region::Region;
 use crate::LONG_DATETIME;
 
@@ -21,6 +25,7 @@ use std::fmt::Write as _;
 const SHORT_DATE: &[time::format_description::FormatItem<'static>] =
     format_description!("[year][month][day]");
 
+#[cfg(not(feature = "openssl"))]
 pub type HmacSha256 = Hmac<Sha256>;
 
 // https://perishablepress.com/stop-using-unsafe-characters-in-urls/
@@ -414,7 +419,7 @@ mod tests {
         let expected = "f0e8bdb87c964420e857bd35b5d6ed310bd44f0170aba48dd91039c6036bdb41";
         let secret = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY";
         let signing_key = signing_key(&datetime, secret, &"us-east-1".parse().unwrap(), "s3");
-        let mut hmac = Hmac::<Sha256>::new_from_slice(&signing_key.unwrap()).unwrap();
+        let mut hmac = HmacSha256::new_from_slice(&signing_key.unwrap()).unwrap();
         hmac.update(string_to_sign.as_bytes());
         assert_eq!(expected, hex::encode(hmac.finalize().into_bytes()));
     }
