@@ -1,3 +1,4 @@
+#[cfg(not(feature = "openssl"))]
 use hmac::Mac;
 use std::collections::HashMap;
 use time::format_description::well_known::Rfc2822;

@@ -18,6 +18,8 @@ pub mod bucket;
 pub mod bucket_ops;
 pub mod command;
 pub mod deserializer;
+#[cfg(feature = "openssl")]
+mod openssl_crypto;
 #[cfg(feature = "with-tokio")]
 pub mod request;
 pub mod serde_types;

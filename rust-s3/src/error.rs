@@ -16,6 +16,9 @@ pub enum S3Error {
     Region(#[from] crate::region::error::RegionError),
     #[error("sha2 invalid length: {0}")]
     HmacInvalidLength(#[from] sha2::digest::InvalidLength),
+    #[cfg(feature = "openssl")]
+    #[error("openssl: {0}")]
+    Openssl(#[from] openssl::error::ErrorStack),
     #[error("url parse: {0}")]
     UrlParse(#[from] url::ParseError),
     #[error("io: {0}")]

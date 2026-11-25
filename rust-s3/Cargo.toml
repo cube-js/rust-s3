@@ -26,6 +26,7 @@ time = { version = "^0.3.6", features = ["formatting", "macros"] }
 futures-io = { version = "0.3", optional = true }
 futures-util = { version = "0.3", optional = true, features = ["io"] }
 hex = "0.4"
+openssl = { version = "0.10", optional = true }
 hmac = "0.12"
 http = "0.2"
 log = "0.4"
